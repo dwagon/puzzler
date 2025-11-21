@@ -44,6 +44,22 @@ class TestCalcRegex(unittest.TestCase):
         reg = calc_regexp(self.alphabet, [1, 2])
         self.assertEqual(reg.pattern, "^a[bcdefghijklmnopqrstuvwxyz]$")
 
+    def test_dupe(self):
+        """Test regexp with a repeated letter"""
+        reg = calc_regexp(self.alphabet, [2, 3, 1, 3])
+        self.assertEqual(
+            reg.pattern,
+            r"^[bcdefghijklmnopqrstuvwxyz]([bcdefghijklmnopqrstuvwxyz])a\1$",
+        )
+
+    def test_repeated_dupe(self):
+        """Test regexp with a repeated letter"""
+        reg = calc_regexp(self.alphabet, [2, 3, 1, 3, 2, 3])
+        self.assertEqual(
+            reg.pattern,
+            r"^([bcdefghijklmnopqrstuvwxyz])([bcdefghijklmnopqrstuvwxyz])a\2\1\2$",
+        )
+
 
 ########################################################################
 class TestExtractClues(unittest.TestCase):
