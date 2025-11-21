@@ -10,6 +10,8 @@ from typing import Optional
 
 #######################################################################
 class Letter:
+    """Class to store possible answers for a letter"""
+
     def __init__(self):
         self._possibles = set(string.ascii_lowercase)
         self._answer = ""
@@ -19,6 +21,7 @@ class Letter:
         self._answer = letter
 
     def possibles(self) -> set[str]:
+        """Return possible letters"""
         return self._possibles
 
     def update(self, possibles: set[str]):
@@ -54,6 +57,8 @@ class Letter:
 
 #######################################################################
 class Alphabet:
+    """Class to store all the letter solutions"""
+
     def __init__(self):
         """Initialize letters to all possibilities"""
         self._letters: dict[int, Letter] = {}
@@ -84,26 +89,23 @@ class Alphabet:
         return self._letters.items()
 
 
-ALPHABET = Alphabet()
-
-
 #######################################################################
 def read_puzzle_file(filename: Path) -> list[str]:
     """Read the puzzle file in"""
-    with open(filename, "r") as puzzle_file:
+    with open(filename, "r", encoding="utf-8") as puzzle_file:
         puzzle = puzzle_file.read()
     return puzzle.split("\n")
 
 
 #######################################################################
-def extract_clues(puzzle: list[str]) -> None:
+def extract_clues(alphabet: Alphabet, puzzle: list[str]) -> None:
     """Pull out any existing known letters
     Should be in format: <letter>=<number>
     """
     for line in puzzle:
         if line and line[0] in string.ascii_letters:
             letter, number = line.split("=")
-            ALPHABET.solve(int(number), letter.lower())
+            alphabet.solve(int(number), letter.lower())
 
 
 #######################################################################
@@ -124,7 +126,7 @@ def extract_puzzles(raw_puzzle: list[str]) -> list[list[int]]:
 def load_dictionary(filename: Path) -> list[str]:
     """Load the dictionary"""
     dictionary = []
-    with open(filename, "r") as dictionary_file:
+    with open(filename, "r", encoding="utf-8") as dictionary_file:
         for line in dictionary_file:
             if line[0] in string.ascii_lowercase:  # No proper nouns
                 dictionary.append(line.lower())
@@ -132,14 +134,14 @@ def load_dictionary(filename: Path) -> list[str]:
 
 
 #######################################################################
-def calc_regexp(puzzle: list[int]) -> re.Pattern:
+def calc_regexp(alphabet, puzzle: list[int]) -> re.Pattern:
     """Make a regexp to find appropriate words"""
     re_list = ["^"]
     for num in puzzle:
-        if ans := ALPHABET.answer(num):
+        if ans := alphabet.answer(num):
             re_list.append(ans)
         else:
-            possible_letters = "".join(list(ALPHABET.possibles(num)))
+            possible_letters = "".join(sorted(list(alphabet.possibles(num))))
             re_list.append(f"[{possible_letters}]")
     re_list.append("$")
     reg = re.compile("".join(re_list))
@@ -147,10 +149,11 @@ def calc_regexp(puzzle: list[int]) -> re.Pattern:
 
 
 #######################################################################
-def get_possibles(puzzle: list[int], dictionary: list[str]) -> dict[int, set[str]]:
+def get_possibles(
+    puzzle: list[int], reg: re.Pattern, dictionary: list[str]
+) -> dict[int, set[str]]:
     """Return the possible letters for the puzzle"""
     possibles: dict[int, set[str]] = defaultdict(set)
-    reg = calc_regexp(puzzle)
 
     matched = False
     for word in dictionary:
@@ -165,10 +168,11 @@ def get_possibles(puzzle: list[int], dictionary: list[str]) -> dict[int, set[str
 
 
 #######################################################################
-def print_solution():
+def print_solution(alphabet: Alphabet):
+    """Print the solution"""
     unknowns = 0
     good = 0
-    for k, v in ALPHABET.items():
+    for k, v in alphabet.items():
         if v.answer():
             good += 1
         print(f"{k}\t{v}")
@@ -179,30 +183,35 @@ def print_solution():
 
 
 #######################################################################
-def solve_iteration(puzzles: list[list[int]], dictionary: list[str]) -> None:
+def solve_iteration(
+    alphabet: Alphabet, puzzles: list[list[int]], dictionary: list[str]
+) -> None:
     """Solve for all puzzles"""
     for puzzle in puzzles:
-        solve_puzzle(puzzle, dictionary)
+        solve_puzzle(alphabet, puzzle, dictionary)
 
 
 #######################################################################
-def solve_puzzle(puzzle: list[int], dictionary: list[str]):
+def solve_puzzle(alphabet: Alphabet, puzzle: list[int], dictionary: list[str]):
     """Solve for a single puzzle"""
-    possibles = get_possibles(puzzle, dictionary)
+    reg = calc_regexp(alphabet, puzzle)
+    possibles = get_possibles(puzzle, reg, dictionary)
     for num, poss in possibles.items():
-        ALPHABET.update(num, poss)
+        alphabet.update(num, poss)
 
 
 #######################################################################
 def main():
     dictionary = load_dictionary(Path("dictionary.txt"))
     raw_puzzles = read_puzzle_file(Path(sys.argv[1]))
-    extract_clues(raw_puzzles)
+    alphabet = Alphabet()
+
+    extract_clues(alphabet, raw_puzzles)
     puzzles = extract_puzzles(raw_puzzles)
     for _ in range(3):
-        solve_iteration(puzzles, dictionary)
+        solve_iteration(alphabet, puzzles, dictionary)
 
-    print_solution()
+    print_solution(alphabet)
 
 
 #######################################################################
