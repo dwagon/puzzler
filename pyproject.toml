@@ -1,0 +1,9 @@
+[project]
+name = "puzzler"
+version = "0.1.0"
+description = "Solve word puzzles"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "black>=25.11.0",
+]
