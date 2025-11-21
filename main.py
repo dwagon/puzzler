@@ -154,12 +154,24 @@ def load_dictionary(filename: Path) -> list[str]:
 def calc_regexp(alphabet, puzzle: list[int]) -> re.Pattern:
     """Make a regexp to find appropriate words"""
     re_list = ["^"]
+    dupes = set(_ for _ in puzzle if puzzle.count(_) > 1)
+    done_dupes: dict[int, int] = {}
     for num in puzzle:
         if ans := alphabet.answer(num):
             re_list.append(ans)
         else:
             possible_letters = "".join(sorted(list(alphabet.possibles(num))))
-            re_list.append(f"[{possible_letters}]")
+            if num in dupes:
+                if num not in done_dupes:
+                    reg = f"([{possible_letters}])"
+                    done_dupes[num] = len(done_dupes) + 1
+                else:
+                    reg = rf"\{done_dupes[num]}"
+            else:
+                reg = f"[{possible_letters}]"
+            re_list.append(reg)
+            if not possible_letters:
+                print(f"DBG {num=} {puzzle=} {re_list}")
     re_list.append("$")
     reg = re.compile("".join(re_list))
     return reg
