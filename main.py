@@ -85,6 +85,9 @@ class Alphabet:
         for v in self._letters.values():
             v.remove(char)
 
+    def __getitem__(self, item):
+        return self._letters[item]
+
     def items(self):
         return self._letters.items()
 
@@ -92,9 +95,14 @@ class Alphabet:
 #######################################################################
 def read_puzzle_file(filename: Path) -> list[str]:
     """Read the puzzle file in"""
+    puzzles = []
     with open(filename, "r", encoding="utf-8") as puzzle_file:
-        puzzle = puzzle_file.read()
-    return puzzle.split("\n")
+        for line in puzzle_file:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            puzzles.append(line)
+    return puzzles
 
 
 #######################################################################
@@ -103,8 +111,12 @@ def extract_clues(alphabet: Alphabet, puzzle: list[str]) -> None:
     Should be in format: <letter>=<number>
     """
     for line in puzzle:
-        if line and line[0] in string.ascii_letters:
-            letter, number = line.split("=")
+        if line[0] in string.ascii_letters:
+            try:
+                letter, number = line.split("=")
+            except ValueError:
+                print(f"Unhandled line: {line}", file=sys.stderr)
+                continue
             alphabet.solve(int(number), letter.lower())
 
 
@@ -113,11 +125,16 @@ def extract_puzzles(raw_puzzle: list[str]) -> list[list[int]]:
     """Pull out the puzzles bits and convert"""
     puzzles = []
     for line in raw_puzzle:
-        if not line or line[0] == "#":
-            continue
         if line[0] in string.ascii_letters:
             continue
-        puzzle = [int(_) for _ in line.split()]
+        try:
+            puzzle = [int(_) for _ in line.split()]
+        except ValueError:
+            print(f"Bad line: {line} - couldn't convert", file=sys.stderr)
+            continue
+        if any(_ > 26 or _ < 1 for _ in puzzle):
+            print(f"Bad line: {line} - numbers out of bound", file=sys.stderr)
+            continue
         puzzles.append(puzzle)
     return puzzles
 
@@ -129,7 +146,7 @@ def load_dictionary(filename: Path) -> list[str]:
     with open(filename, "r", encoding="utf-8") as dictionary_file:
         for line in dictionary_file:
             if line[0] in string.ascii_lowercase:  # No proper nouns
-                dictionary.append(line.lower())
+                dictionary.append(line.lower().strip())
     return dictionary
 
 
@@ -215,7 +232,7 @@ def main():
 
 
 #######################################################################
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no coverage
     main()
 
 # EOF
